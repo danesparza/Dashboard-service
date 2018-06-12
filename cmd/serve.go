@@ -40,6 +40,9 @@ func serve(cmd *cobra.Command, args []string) {
 	router.HandleFunc("/config", nil).Methods("GET")
 	router.HandleFunc("/config", nil).Methods("POST")
 
+	//	Websocket connections
+	router.Handle("/ws", api.WsHandler{H: api.WsHub})
+
 	//	If we don't have a UI directory specified...
 	if viper.GetString("server.ui-dir") == "" {
 		//	Use the static assets file generated with
