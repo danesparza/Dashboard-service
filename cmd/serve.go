@@ -39,6 +39,7 @@ func serve(cmd *cobra.Command, args []string) {
 	router.HandleFunc("/", api.ShowUI)
 	router.HandleFunc("/config", nil).Methods("GET")
 	router.HandleFunc("/config", nil).Methods("POST")
+	router.HandleFunc("/config", nil).Methods("DELETE")
 
 	//	Websocket connections
 	router.Handle("/ws", api.WsHandler{H: api.WsHub})

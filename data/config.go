@@ -1,51 +1,43 @@
 package data
 
 import (
+	"encoding/json"
+	"fmt"
 	"time"
+
+	"github.com/danesparza/badger"
 )
 
 // ConfigItem represents a single configuration item
 type ConfigItem struct {
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Created     time.Time `json:"created"`
-	Updated     time.Time `json:"updated"`
+	Name    string    `json:"name"`
+	Value   string    `json:"value"`
+	Created time.Time `json:"created"`
+	Updated time.Time `json:"updated"`
 }
 
-/*
-// AddConfig adds a config item to the system
-func (store Manager) AddConfig(configName string, configDescription string) (ConfigItem, error) {
+// SetConfig sets a config item to the system
+func (store Manager) SetConfig(name string, value string) (ConfigItem, error) {
 	//	Our return item
 	retval := ConfigItem{}
 
 	//	Our new config:
 	config := ConfigItem{
-		Name:        configName,
-		Description: configDescription,
-		Created:     time.Now(),
-		Updated:     time.Now(),
-	}
-
-	//	First -- does the config item exist already?
-	err := store.systemdb.View(func(txn *badger.Txn) error {
-		_, err := txn.Get(GetKey("Config", config.Name))
-		return err
-	})
-
-	//	If we didn't get an error, we have a problem:
-	if err == nil {
-		return retval, fmt.Errorf("Config item already exists")
+		Name:    name,
+		Value:   value,
+		Created: time.Now(),
+		Updated: time.Now(),
 	}
 
 	//	Serialize to JSON format
-	encoded, err := json.Marshal(role)
+	encoded, err := json.Marshal(config)
 	if err != nil {
 		return retval, fmt.Errorf("Problem serializing the data: %s", err)
 	}
 
 	//	Save it to the database:
 	err = store.systemdb.Update(func(txn *badger.Txn) error {
-		err := txn.Set(GetKey("Role", role.Name), encoded)
+		err := txn.Set(GetKey("Config", config.Name), encoded)
 		return err
 	})
 
@@ -55,24 +47,37 @@ func (store Manager) AddConfig(configName string, configDescription string) (Con
 	}
 
 	//	Set our retval:
-	retval = role
+	retval = config
 
 	//	Return our data:
 	return retval, nil
 }
 
-// GetRole gets a user from the system
-func (store Manager) GetRole(context User, roleName string) (Role, error) {
-	//	Our return item
-	retval := Role{}
+// DeleteConfig removes a config item from the system
+func (store Manager) DeleteConfig(name string) error {
 
-	//	Security check:  Are we authorized to perform this action?
-	if !store.IsUserRequestAuthorized(context, sysreqGetRole) {
-		return retval, fmt.Errorf("User %s is not authorized to perform the action", context.Name)
+	//	Save it to the database:
+	err := store.systemdb.Update(func(txn *badger.Txn) error {
+		err := txn.Delete(GetKey("Config", name))
+		return err
+	})
+
+	//	If there was an error removing the data, report it:
+	if err != nil {
+		return fmt.Errorf("Problem removing the data: %s", err)
 	}
 
+	//	Return no error:
+	return nil
+}
+
+// GetConfig gets a config item from the system
+func (store Manager) GetConfig(name string) (ConfigItem, error) {
+	//	Our return item
+	retval := ConfigItem{}
+
 	err := store.systemdb.View(func(txn *badger.Txn) error {
-		item, err := txn.Get(GetKey("Role", roleName))
+		item, err := txn.Get(GetKey("Config", name))
 		if err != nil {
 			return err
 		}
@@ -100,15 +105,10 @@ func (store Manager) GetRole(context User, roleName string) (Role, error) {
 	return retval, nil
 }
 
-// GetAllRoles gets all roles in the system
-func (store Manager) GetAllRoles(context User) ([]Role, error) {
+// GetAllConfig gets all config items in the system
+func (store Manager) GetAllConfig() ([]ConfigItem, error) {
 	//	Our return item
-	retval := []Role{}
-
-	//	Security check:  Are we authorized to perform this action?
-	if !store.IsUserRequestAuthorized(context, sysreqGetAllRoles) {
-		return retval, fmt.Errorf("User %s is not authorized to perform the action", context.Name)
-	}
+	retval := []ConfigItem{}
 
 	err := store.systemdb.View(func(txn *badger.Txn) error {
 
@@ -117,7 +117,7 @@ func (store Manager) GetAllRoles(context User) ([]Role, error) {
 		defer it.Close()
 
 		//	Set our prefix
-		prefix := GetKey("Role")
+		prefix := GetKey("Config")
 
 		//	Iterate over our values:
 		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
@@ -136,7 +136,7 @@ func (store Manager) GetAllRoles(context User) ([]Role, error) {
 
 			if len(val) > 0 {
 				//	Create our item:
-				item := Role{}
+				item := ConfigItem{}
 
 				//	Unmarshal data into our item
 				if err := json.Unmarshal(val, &item); err != nil {
@@ -158,4 +158,3 @@ func (store Manager) GetAllRoles(context User) ([]Role, error) {
 	//	Return our data:
 	return retval, nil
 }
-*/

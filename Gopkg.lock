@@ -10,10 +10,17 @@
   revision = "e2d15f34fcf99d5dbb871c820ec73f710fca9815"
 
 [[projects]]
-  digest = "1:5f5090f05382959db941fa45acbeb7f4c5241aa8ac0f8f4393dec696e5953f53"
+  digest = "1:080e6c527c57ae99a201824dcb6750328804e53c8a4f1b4e516ef56f2bd1167d"
+  name = "github.com/danesparza/badger"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "391b6d3b93e6014fe8c2971fcc0c1266e47dbbd9"
+  version = "v1.5.3"
+
+[[projects]]
+  digest = "1:5741c0c81f8be9b368a85b12d13127c9cd1bbea22b9c23bb4245922a31b39ace"
   name = "github.com/dgraph-io/badger"
   packages = [
-    ".",
     "options",
     "protos",
     "skl",
@@ -276,7 +283,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "github.com/dgraph-io/badger",
+    "github.com/danesparza/badger",
     "github.com/elazarl/go-bindata-assetfs",
     "github.com/gorilla/handlers",
     "github.com/gorilla/mux",
