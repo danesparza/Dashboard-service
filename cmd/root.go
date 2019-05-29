@@ -72,7 +72,7 @@ func initConfig() {
 	viper.SetDefault("server.port", "3000")
 	viper.SetDefault("server.bind", "")
 	viper.SetDefault("server.allowed-origins", "*")
-	viper.SetDefault("datastore.system", path.Join(home, "iamserver", "db", "system"))
+	viper.SetDefault("datastore.system", path.Join(home, "dashboard-service", "db", "system"))
 
 	// If a config file is found, read it in
 	// otherwise, make note that there was a problem
