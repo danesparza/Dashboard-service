@@ -55,9 +55,37 @@ func TestConfig_GetConfig_ValidConfig_Successful(t *testing.T) {
 
 	//	Assert
 	if err != nil {
-		t.Errorf("SetConfig - Should execute without error, but got: %s", err)
+		t.Errorf("GetConfig - Should execute without error, but got: %s", err)
 	}
 
 	t.Logf("Get config: %+v", response)
+
+}
+
+func TestConfig_GetAllConfig_ValidConfig_Successful(t *testing.T) {
+
+	//	Arrange
+	systemdb := getTestFiles()
+	db, err := data.NewManager(systemdb)
+	if err != nil {
+		t.Errorf("NewManager failed: %s", err)
+	}
+	defer func() {
+		db.Close()
+		os.RemoveAll(systemdb)
+	}()
+
+	//	Act
+	_, err = db.SetConfig("Name1", "Value1")
+	_, err = db.SetConfig("Name2", "Value2")
+
+	response, err := db.GetAllConfig()
+
+	//	Assert
+	if err != nil {
+		t.Errorf("GetAllConfig - Should execute without error, but got: %s", err)
+	}
+
+	t.Logf("Get all configs: %+v", response)
 
 }
