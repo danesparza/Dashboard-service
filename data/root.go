@@ -12,6 +12,12 @@ type Manager struct {
 	systemdb *badger.DB
 }
 
+// WebSocketResponse represents a WebSocket event response
+type WebSocketResponse struct {
+	Type string     `json:"type"`
+	Data ConfigItem `json:"data"`
+}
+
 // NewManager creates a new instance of a Manager and returns it
 func NewManager(systemdbpath string) (*Manager, error) {
 	retval := new(Manager)

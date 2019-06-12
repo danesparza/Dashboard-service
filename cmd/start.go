@@ -3,8 +3,14 @@ package cmd
 import (
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/danesparza/Dashboard-service/api"
+	"github.com/danesparza/Dashboard-service/data"
+
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
@@ -20,26 +26,54 @@ var (
 
 // serveCmd represents the serve command
 var serveCmd = &cobra.Command{
-	Use:   "serve",
+	Use:   "start",
 	Short: "Start the server",
 	Long:  `The serve command starts hosting the dashboard`,
-	Run:   serve,
+	Run:   start,
 }
 
-func serve(cmd *cobra.Command, args []string) {
+func start(cmd *cobra.Command, args []string) {
 	//	If we have a config file, report it:
 	if viper.ConfigFileUsed() != "" {
 		log.Println("[INFO] Using config file:", viper.ConfigFileUsed())
 	}
+
+	//	Create our 'sigs' and 'done' channels (this is for graceful shutdown)
+	sigs := make(chan os.Signal, 1)
+	done := make(chan bool, 1)
+
+	//	Indicate what signals we're waiting for:
+	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
+
+	//	If the datastore.system path doesn't exist, create it:
+	if _, err := os.Stat(viper.GetString("datastore.system")); os.IsNotExist(err) {
+		log.Printf("[INFO] The system database path doesn't exist.  Creating...\n")
+
+		err := os.MkdirAll(viper.GetString("datastore.system"), 0644)
+		if err != nil {
+			log.Fatalf("[ERROR] Error trying to prep the system database path: %s", err)
+			return
+		}
+	}
+
+	//	Create a DBManager object and associate with the api.Service
+	log.Printf("[INFO] Using System DB: %s", viper.GetString("datastore.system"))
+	db, err := data.NewManager(viper.GetString("datastore.system"))
+	if err != nil {
+		log.Printf("[ERROR] Error trying to open the system or token database: %s", err)
+		return
+	}
+	defer db.Close()
+	apiService := api.Service{DB: db, StartTime: time.Now()}
 
 	//	Create a router and setup our REST endpoints...
 	var router = mux.NewRouter()
 
 	//	Setup our routes
 	router.HandleFunc("/", api.ShowUI)
-	router.HandleFunc("/config", nil).Methods("GET")
-	router.HandleFunc("/config", nil).Methods("POST")
-	router.HandleFunc("/config", nil).Methods("DELETE")
+	router.HandleFunc("/config", apiService.GetAllConfig).Methods("GET")
+	router.HandleFunc("/config", apiService.SetConfig).Methods("POST")
+	router.HandleFunc("/config", apiService.RemoveConfig).Methods("DELETE")
 
 	//	Websocket connections
 	router.Handle("/ws", api.WsHandler{H: api.WsHub})
@@ -74,20 +108,39 @@ func serve(cmd *cobra.Command, args []string) {
 		formattedInterface = "127.0.0.1"
 	}
 
-	//	If we have an SSL cert specified, use it:
-	if viper.GetString("server.sslcert") != "" {
-		log.Printf("[INFO] Using SSL cert: %s\n", viper.GetString("server.sslcert"))
-		log.Printf("[INFO] Using SSL key: %s\n", viper.GetString("server.sslkey"))
-		log.Printf("[INFO] Starting HTTPS server: https://%s:%s\n", formattedInterface, viper.GetString("server.port"))
+	//	Start our shutdown listener (for graceful shutdowns)
+	go func() {
+		//	If we get a signal...
+		_ = <-sigs
 
-		//	Start the service with SSL
-		log.Printf("[ERROR] %v\n", http.ListenAndServeTLS(viper.GetString("server.bind")+":"+viper.GetString("server.port"), viper.GetString("server.sslcert"), viper.GetString("server.sslkey"), handlers.CORS(originsOk, headersOk, methodsOk)(router)))
-	} else {
+		//	Indicate we're done...
+		done <- true
+	}()
+
+	//	Start the API and UI services
+	go func() {
 		log.Printf("[INFO] Starting HTTP server: http://%s:%s\n", formattedInterface, viper.GetString("server.port"))
 
 		//	Start the service with HTTP
 		log.Printf("[ERROR] %v\n", http.ListenAndServe(viper.GetString("server.bind")+":"+viper.GetString("server.port"), handlers.CORS(originsOk, headersOk, methodsOk)(router)))
+	}()
+
+	//	If we have an SSL cert specified, use it:
+	if viper.GetString("server.sslcert") != "" {
+		go func() {
+
+			log.Printf("[INFO] Using SSL cert: %s\n", viper.GetString("server.sslcert"))
+			log.Printf("[INFO] Using SSL key: %s\n", viper.GetString("server.sslkey"))
+			log.Printf("[INFO] Starting HTTPS server: https://%s:%s\n", formattedInterface, viper.GetString("server.port"))
+
+			//	Start the service with SSL
+			log.Printf("[ERROR] %v\n", http.ListenAndServeTLS(viper.GetString("server.bind")+":"+viper.GetString("server.port"), viper.GetString("server.sslcert"), viper.GetString("server.sslkey"), handlers.CORS(originsOk, headersOk, methodsOk)(router)))
+		}()
 	}
+
+	//	Wait for our signal and shutdown gracefully
+	<-done
+	log.Printf("[INFO] Shutting down ...")
 
 }
 
