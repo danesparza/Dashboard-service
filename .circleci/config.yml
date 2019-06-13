@@ -12,11 +12,37 @@ jobs:
       # CircleCI maintains a library of pre-built images
       # documented at https://circleci.com/docs/2.0/circleci-images/
       # - image: circleci/postgres:9.4
+    environment:
+      PACKAGE_PATH: "github.com/danesparza/Dashboard-service"
 
     working_directory: /go/src/github.com/danesparza/Dashboard-service
     steps:
       - checkout
 
-      # specify any bash command here prefixed with `run: `
-      - run: go get -v -t -d ./...
-      - run: go test -v ./...
+      - run:
+         name: Install 'dep' tool
+         command: go get -u github.com/golang/dep/cmd/dep
+      
+      - run:
+         name: Get dependencies
+         command: dep ensure
+
+      - run:
+         name: Get compiler tool
+         command: go get github.com/mitchellh/gox
+
+      - run:
+         name: Get release tool
+         command: go get github.com/tcnksm/ghr
+
+      - run:
+         name: Data tests
+         command: go test -v -race github.com/danesparza/iamserver/data
+
+      - run:
+         name: Create binaries for all platforms
+         command: mkdir -p /tmp/binaries; gox -ldflags "-X $PACKAGE_PATH/cmd.BuildVersion=1.0.$CIRCLE_BUILD_NUM -X $PACKAGE_PATH/cmd.CommitID=$CIRCLE_SHA1" -output "/tmp/binaries/${CIRCLE_PROJECT_REPONAME}_{{.OS}}_{{.Arch}}" $PACKAGE_PATH/...
+
+      - run: 
+         name: Push the release to Github
+         command: ghr -prerelease -t $GITHUB_TOKEN -u $CIRCLE_PROJECT_USERNAME -r $CIRCLE_PROJECT_REPONAME v1.0.$CIRCLE_BUILD_NUM /tmp/binaries/ || true
