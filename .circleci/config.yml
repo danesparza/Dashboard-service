@@ -37,7 +37,7 @@ jobs:
 
       - run:
          name: Data tests
-         command: go test -v -race github.com/danesparza/iamserver/data
+         command: go test -v -race github.com/danesparza/Dashboard-service/data
 
       - run:
          name: Create binaries for all platforms
