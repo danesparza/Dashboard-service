@@ -50,16 +50,6 @@ func (service Service) GetConfig(rw http.ResponseWriter, req *http.Request) {
 
 // GetAllConfig gets all config items
 func (service Service) GetAllConfig(rw http.ResponseWriter, req *http.Request) {
-	//	req.Body is a ReadCloser -- we need to remember to close it:
-	defer req.Body.Close()
-
-	//	Decode the request:
-	request := data.ConfigItem{}
-	err := json.NewDecoder(req.Body).Decode(&request)
-	if err != nil {
-		sendErrorResponse(rw, err, http.StatusBadRequest)
-		return
-	}
 
 	//	Send the request to the datastore and get a response:
 	response, err := service.DB.GetAllConfig()
@@ -70,13 +60,13 @@ func (service Service) GetAllConfig(rw http.ResponseWriter, req *http.Request) {
 
 	//	If we found an item, return it (otherwise, return an empty item):
 	configItems := []data.ConfigItem{}
-	if len(response) == 0 {
+	if len(response) != 0 {
 		configItems = response
 		sendDataResponse(rw, "Config items found", configItems)
 		return
 	}
 
-	sendDataResponse(rw, "No config items found with that name", configItems)
+	sendDataResponse(rw, "No config items found", configItems)
 }
 
 // SetConfig sets a specific config item
