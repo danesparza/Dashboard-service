@@ -2,7 +2,6 @@ package data_test
 
 import (
 	"os"
-	"path"
 	"testing"
 
 	"github.com/danesparza/Dashboard-service/data"
@@ -10,15 +9,20 @@ import (
 
 //	Gets the database path for this environment:
 func getTestFiles() string {
-	systemdb := ""
-
-	testRoot := os.Getenv("DASH_TEST_ROOT")
-
-	if testRoot != "" {
-		systemdb = path.Join(testRoot, "system")
-	}
+	systemdb := os.Getenv("DASH_TEST_ROOT")
 
 	return systemdb
+}
+
+func TestRoot_GetTestDBPaths_Successful(t *testing.T) {
+
+	systemdb := getTestFiles()
+
+	if systemdb == "" {
+		t.Fatal("The required DASH_TEST_ROOT environment variable is not set to the test database root path")
+	}
+
+	t.Logf("System db path: %s", systemdb)
 }
 
 func TestRoot_Databases_ShouldNotExistYet(t *testing.T) {
@@ -29,7 +33,7 @@ func TestRoot_Databases_ShouldNotExistYet(t *testing.T) {
 
 	//	Assert
 	if _, err := os.Stat(systemdb); err == nil {
-		t.Errorf("System database check failed: System db directory %s already exists, and shouldn't", systemdb)
+		t.Errorf("System database check failed: System db %s already exists, and shouldn't", systemdb)
 	}
 }
 

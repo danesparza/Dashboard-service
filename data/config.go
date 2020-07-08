@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/danesparza/badger"
+	"github.com/tidwall/buntdb"
 )
 
 // ConfigItem represents a single configuration item
@@ -36,8 +36,8 @@ func (store Manager) SetConfig(name string, value string) (ConfigItem, error) {
 	}
 
 	//	Save it to the database:
-	err = store.systemdb.Update(func(txn *badger.Txn) error {
-		err := txn.Set(GetKey("Config", config.Name), encoded)
+	err = store.systemdb.Update(func(tx *buntdb.Tx) error {
+		_, _, err := tx.Set(GetKey("Config", config.Name), string(encoded), nil)
 		return err
 	})
 
@@ -57,8 +57,8 @@ func (store Manager) SetConfig(name string, value string) (ConfigItem, error) {
 func (store Manager) DeleteConfig(name string) error {
 
 	//	Save it to the database:
-	err := store.systemdb.Update(func(txn *badger.Txn) error {
-		err := txn.Delete(GetKey("Config", name))
+	err := store.systemdb.Update(func(tx *buntdb.Tx) error {
+		_, err := tx.Delete(GetKey("Config", name))
 		return err
 	})
 
@@ -76,18 +76,15 @@ func (store Manager) GetConfig(name string) (ConfigItem, error) {
 	//	Our return item
 	retval := ConfigItem{}
 
-	err := store.systemdb.View(func(txn *badger.Txn) error {
-		item, err := txn.Get(GetKey("Config", name))
-		if err != nil {
-			return err
-		}
-		val, err := item.Value()
+	err := store.systemdb.View(func(tx *buntdb.Tx) error {
+		item, err := tx.Get(GetKey("Config", name))
 		if err != nil {
 			return err
 		}
 
-		if len(val) > 0 {
+		if len(item) > 0 {
 			//	Unmarshal data into our item
+			val := []byte(item)
 			if err := json.Unmarshal(val, &retval); err != nil {
 				return err
 			}
@@ -110,43 +107,29 @@ func (store Manager) GetAllConfig() ([]ConfigItem, error) {
 	//	Our return item
 	retval := []ConfigItem{}
 
-	err := store.systemdb.View(func(txn *badger.Txn) error {
+	//	Set our prefix
+	prefix := GetKey("Config")
 
-		//	Get an iterator
-		it := txn.NewIterator(badger.DefaultIteratorOptions)
-		defer it.Close()
+	err := store.systemdb.View(func(tx *buntdb.Tx) error {
 
-		//	Set our prefix
-		prefix := GetKey("Config")
-
-		//	Iterate over our values:
-		for it.Seek(prefix); it.ValidForPrefix(prefix); it.Next() {
-
-			//	Get the item
-			item := it.Item()
-
-			//	Get the item key
-			// k := item.Key()
-
-			//	Get the item value
-			val, err := item.Value()
-			if err != nil {
-				return err
-			}
+		tx.Descend(prefix, func(key, val string) bool {
 
 			if len(val) > 0 {
 				//	Create our item:
 				item := ConfigItem{}
 
 				//	Unmarshal data into our item
-				if err := json.Unmarshal(val, &item); err != nil {
-					return err
+				bval := []byte(val)
+				if err := json.Unmarshal(bval, &item); err != nil {
+					return false
 				}
 
 				//	Add to the array of returned users:
 				retval = append(retval, item)
 			}
-		}
+
+			return true
+		})
 		return nil
 	})
 
