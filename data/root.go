@@ -29,7 +29,7 @@ func NewManager(systemdbpath string) (*Manager, error) {
 	retval.systemdb = sysdb
 
 	//	Create our indexes
-	sysdb.CreateIndex("Event", "Event:*", buntdb.IndexString)
+	//  sysdb.CreateIndex("Event", "Event:*", buntdb.IndexString)
 
 	//	Return our Manager reference
 	return retval, nil
