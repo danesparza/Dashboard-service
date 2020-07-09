@@ -111,7 +111,6 @@ func (store Manager) GetAllConfig() ([]ConfigItem, error) {
 	prefix := GetKey("Config")
 
 	err := store.systemdb.View(func(tx *buntdb.Tx) error {
-
 		tx.Descend(prefix, func(key, val string) bool {
 
 			if len(val) > 0 {
