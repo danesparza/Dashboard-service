@@ -60,9 +60,9 @@ func initConfig() {
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
 	} else {
-		viper.SetConfigName("dashboard") // name of config file (without extension)
 		viper.AddConfigPath(home)        // adding home directory as first search path
 		viper.AddConfigPath(".")         // also look in the working directory
+		viper.SetConfigName("dashboard") // name the config file (without extension)
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match
@@ -72,7 +72,7 @@ func initConfig() {
 	viper.SetDefault("server.port", "3000")
 	viper.SetDefault("server.bind", "")
 	viper.SetDefault("server.allowed-origins", "*")
-	viper.SetDefault("datastore.system", path.Join(home, "dashboard-service", "db", "system"))
+	viper.SetDefault("datastore.system", path.Join(home, "dashboard-service", "db", "system.db"))
 
 	// If a config file is found, read it in
 	// otherwise, make note that there was a problem

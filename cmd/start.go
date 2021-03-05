@@ -45,17 +45,6 @@ func start(cmd *cobra.Command, args []string) {
 	//	Indicate what signals we're waiting for:
 	signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
 
-	//	If the datastore.system path doesn't exist, create it:
-	if _, err := os.Stat(viper.GetString("datastore.system")); os.IsNotExist(err) {
-		log.Printf("[INFO] The system database path doesn't exist.  Creating...\n")
-
-		err := os.MkdirAll(viper.GetString("datastore.system"), 0644)
-		if err != nil {
-			log.Fatalf("[ERROR] Error trying to prep the system database path: %s", err)
-			return
-		}
-	}
-
 	//	Create a DBManager object and associate with the api.Service
 	log.Printf("[INFO] Using System DB: %s", viper.GetString("datastore.system"))
 	db, err := data.NewManager(viper.GetString("datastore.system"))
