@@ -19,11 +19,7 @@ jobs:
     working_directory: /go/src/github.com/danesparza/Dashboard-service
     steps:
       - checkout
-
-      - run:
-         name: Get dependencies
-         command: dep ensure
-
+      
       - run:
          name: Get compiler tool
          command: go get github.com/mitchellh/gox
